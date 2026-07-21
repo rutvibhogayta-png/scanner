@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meal Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white;
+      min-height: 100vh; padding: 20px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    h1 { font-size: 20px; margin-bottom: 10px; }
+
+    /* --- login screen --- */
+    .login-screen {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 100%; max-width: 360px; margin-top: 15vh;
+    }
+    .login-screen .sub { font-size: 13px; color: #94a3b8; margin-bottom: 16px; text-align: center; }
+    .login-screen input {
+      width: 100%; padding: 14px; font-size: 16px; border-radius: 8px; border: none;
+      margin-bottom: 12px; background: #1e293b; color: #22d3ee; text-align: center; letter-spacing: 2px;
+    }
+    .login-screen button {
+      width: 100%; padding: 14px; font-size: 15px; border-radius: 8px; border: none;
+      background: #22d3ee; color: #0f172a; font-weight: bold; cursor: pointer;
+    }
+    .login-screen button:disabled { opacity: 0.6; cursor: default; }
+    .login-error { color: #f87171; font-size: 13px; margin-top: 10px; min-height: 16px; text-align: center; }
+
+    /* --- main app --- */
+    .app-content { display: none; width: 100%; flex-direction: column; align-items: center; }
+    select {
+      width: 100%; max-width: 500px; padding: 12px; font-size: 15px;
+      border-radius: 8px; border: none; margin-bottom: 14px; background: #1e293b; color: #22d3ee;
+    }
+    #reader { width: 100%; max-width: 500px; margin: 5px 0; border-radius: 12px; overflow: hidden; }
+    .result-box {
+      background: #1e293b; border: 2px solid #22d3ee; border-radius: 12px;
+      padding: 15px 20px; margin: 10px 0; width: 100%; max-width: 500px; text-align: center;
+    }
+    .result-box.duplicate { border-color: #fb923c; }
+    .result-box.invalid { border-color: #f87171; }
+    .result-box .name { font-size: 22px; font-weight: bold; margin: 6px 0; }
+    .result-box .role { font-size: 13px; color: #94a3b8; }
+    .meal-tag {
+      display: inline-block; font-size: 12px; padding: 3px 10px;
+      border-radius: 999px; margin-top: 8px; font-weight: bold; background: #22d3ee33; color: #22d3ee;
+    }
+    .status { font-size: 14px; margin: 8px 0 0; }
+    .status.success { color: #4ade80; }
+    .status.error { color: #f87171; }
+    .status.sending { color: #fbbf24; }
+    .status.duplicate { color: #fb923c; }
+    .progress { font-size: 12px; color: #64748b; margin-top: 4px; }
+    .history { width: 100%; max-width: 500px; margin-top: 20px; }
+    .history h3 { margin-bottom: 10px; color: #94a3b8; font-size: 13px; }
+    .history-item {
+      background: #1e293b; padding: 8px 12px; border-radius: 8px;
+      margin: 4px 0; display: flex; justify-content: space-between; font-size: 13px;
+    }
+    .logout-link {
+      font-size: 12px; color: #64748b; margin-top: 16px; text-decoration: underline; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Meal Scanner</h1>
+
+  <!-- LOGIN SCREEN -->
+  <div class="login-screen" id="loginScreen">
+    <div class="sub">Enter the access code to open the scanner</div>
+    <input type="password" id="authCodeInput" placeholder="Access code" autocomplete="off" inputmode="text" />
+    <button id="loginBtn">Unlock Scanner</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+
+  <!-- MAIN APP (hidden until authenticated) -->
+  <div class="app-content" id="appContent">
+
+    <select id="stationSelect">
+      <option value="">Loading meal slots...</option>
+    </select>
+
+    <div id="reader"></div>
+
+    <div class="result-box" id="resultBox" style="display:none">
+      <div style="font-size:12px; color:#94a3b8">Last Scanned:</div>
+      <div class="name" id="guestName">--</div>
+      <div class="role" id="guestRole"></div>
+      <div class="status" id="statusText"></div>
+      <div class="progress" id="progressText"></div>
+    </div>
+
+    <div class="history" id="historySection" style="display:none">
+      <h3>Scan history (this session)</h3>
+      <div id="historyList"></div>
+    </div>
+
+    <div class="logout-link" id="logoutLink">Lock scanner</div>
+  </div>
+
+  <script>
+    // IMPORTANT: paste your Apps Script Web App /exec URL here after deploying Code.gs
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwwKMthGEcVWK1XsKwcpqkK-n8cah3gqPgodPy13Gqp6JUF00oOMzve9sD6a5LmVEI/exec';
+    const STATION_NOTE = ''; // optional: label this device, e.g. 'Gate A'
+
+    const scanHistory = [];
+    let lastScan = '';
+    let lastScanTime = 0;
+    let scanner = null;
+    let appStarted = false; // in-memory only: reloading the page requires re-entering the code
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function beep(freq) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = freq;
+      gain.gain.value = 0.3;
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.15);
+    }
+
+    //=========================
+    // LOGIN
+    //=========================
+    const loginScreen = document.getElementById('loginScreen');
+    const appContent = document.getElementById('appContent');
+    const authCodeInput = document.getElementById('authCodeInput');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginError = document.getElementById('loginError');
+
+    async function attemptLogin() {
+      const code = authCodeInput.value.trim();
+      if (!code) {
+        loginError.textContent = 'Enter a code first.';
+        return;
+      }
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Checking...';
+      loginError.textContent = '';
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'login', code })
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          loginScreen.style.display = 'none';
+          appContent.style.display = 'flex';
+          authCodeInput.value = '';
+          startApp();
+        } else {
+          loginError.textContent = data.message || 'Incorrect code.';
+        }
+      } catch (err) {
+        loginError.textContent = 'Network error: ' + err.message;
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Unlock Scanner';
+      }
+    }
+
+    loginBtn.addEventListener('click', attemptLogin);
+    authCodeInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') attemptLogin();
+    });
+
+    document.getElementById('logoutLink').addEventListener('click', () => {
+      appContent.style.display = 'none';
+      loginScreen.style.display = 'flex';
+      if (scanner) {
+        scanner.stop().catch(() => {});
+      }
+      appStarted = false;
+    });
+
+    //=========================
+    // MAIN APP (only runs after successful login)
+    //=========================
+    function startApp() {
+      if (appStarted) return;
+      appStarted = true;
+      loadSlots();
+      startScanner();
+    }
+
+    function loadSlots() {
+      const sel = document.getElementById('stationSelect');
+      fetch(APPS_SCRIPT_URL + '?action=slots')
+        .then(r => r.json())
+        .then(data => {
+          if (data.status !== 'ok') throw new Error('bad response');
+          sel.innerHTML = data.slots.map(s => '<option value="' + s.key + '">' + s.label + '</option>').join('');
+        })
+        .catch(() => {
+          sel.innerHTML = '<option value="">Could not load meal slots — check APPS_SCRIPT_URL</option>';
+        });
+    }
+
+    async function sendScan(guestId) {
+      const mealSlot = document.getElementById('stationSelect').value;
+      const el = document.getElementById('statusText');
+      const box = document.getElementById('resultBox');
+      box.className = 'result-box';
+      el.className = 'status sending';
+      el.textContent = 'Checking...';
+
+      if (!mealSlot) {
+        el.className = 'status error';
+        el.textContent = 'Select a meal slot first.';
+        return;
+      }
+
+      try {
+        // text/plain avoids a CORS preflight; Apps Script still parses it as JSON
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ guestId, mealSlot, station: STATION_NOTE })
+        });
+        const data = await res.json();
+
+        document.getElementById('guestName').textContent = data.name || guestId;
+        document.getElementById('guestRole').textContent = data.role || '';
+
+        if (data.status === 'success') {
+          beep(1200);
+          box.className = 'result-box';
+          el.className = 'status success';
+          el.textContent = 'Logged: ' + data.mealLabel;
+          document.getElementById('progressText').textContent = data.mealsCompleted + ' / ' + data.totalSlots + ' meals completed';
+        } else if (data.status === 'duplicate') {
+          beep(500);
+          box.className = 'result-box duplicate';
+          el.className = 'status duplicate';
+          el.textContent = data.message;
+          document.getElementById('progressText').textContent = data.mealsCompleted + ' / ' + data.totalSlots + ' meals completed';
+        } else if (data.status === 'invalid') {
+          beep(300);
+          box.className = 'result-box invalid';
+          el.className = 'status error';
+          el.textContent = data.message;
+          document.getElementById('progressText').textContent = '';
+        } else {
+          box.className = 'result-box invalid';
+          el.className = 'status error';
+          el.textContent = data.message || 'Unknown error';
+        }
+
+        scanHistory.unshift({ guestId, status: data.status, meal: data.mealLabel || mealSlot, time: new Date().toLocaleTimeString() });
+        updateHistory();
+      } catch (err) {
+        box.className = 'result-box invalid';
+        el.className = 'status error';
+        el.textContent = 'Network error: ' + err.message;
+      }
+    }
+
+    function onScanSuccess(decoded) {
+      const now = Date.now();
+      if (decoded === lastScan && now - lastScanTime < 3000) return; // debounce
+      lastScan = decoded;
+      lastScanTime = now;
+
+      document.getElementById('resultBox').style.display = 'block';
+      document.getElementById('guestName').textContent = decoded;
+      document.getElementById('guestRole').textContent = '';
+      sendScan(decoded.trim().toUpperCase());
+    }
+
+    function updateHistory() {
+      document.getElementById('historySection').style.display = 'block';
+      document.getElementById('historyList').innerHTML = scanHistory.slice(0, 20).map(i =>
+        '<div class="history-item"><span>' + i.guestId + ' — ' + i.meal + ' (' + i.status + ')</span><span style="color:#64748b">' + i.time + '</span></div>'
+      ).join('');
+    }
+
+    function startScanner() {
+      scanner = new Html5Qrcode('reader');
+      scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 260, height: 260 }, aspectRatio: 1.0 },
+        onScanSuccess
+      ).catch(err => {
+        document.getElementById('resultBox').style.display = 'block';
+        document.getElementById('guestName').textContent = 'Camera Error';
+        document.getElementById('statusText').textContent = err;
+        document.getElementById('statusText').className = 'status error';
+      });
+    }
+  </script>
+</body>
+</html>
