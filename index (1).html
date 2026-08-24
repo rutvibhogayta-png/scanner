@@ -3,153 +3,287 @@
 
 <head>
 
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-    <title>Meal Check-In</title>
+<title>Meal Check-In</title>
 
-    <!-- QR SCANNER LIBRARY -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
 
-    <style>
 
-        * {
-            box-sizing: border-box;
-        }
+<style>
 
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background: #f4f6f8;
-            color: #222;
-        }
+* {
+    box-sizing: border-box;
+}
 
-        .container {
-            width: 100%;
-            max-width: 600px;
-            margin: auto;
-            padding: 20px;
-        }
 
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+body {
 
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-        }
+    margin: 0;
 
-        .header p {
-            margin-top: 8px;
-            color: #666;
-        }
+    padding: 0;
 
-        .card {
-            background: white;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        }
+    font-family: Arial, sans-serif;
 
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 7px;
-        }
+    background: #f4f6f8;
 
-        input {
-            width: 100%;
-            padding: 13px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 16px;
-        }
+    color: #222;
 
-        button {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 9px;
-            background: #111827;
-            color: white;
-            font-size: 17px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+}
 
-        button:disabled {
-            opacity: 0.6;
-        }
 
-        button:active {
-            transform: scale(0.98);
-        }
+.container {
 
-        #reader {
-            width: 100%;
-            max-width: 450px;
-            margin: auto;
-        }
+    width: 100%;
 
-        #result {
-            margin-top: 20px;
-            padding: 18px;
-            text-align: center;
-            border-radius: 12px;
-            background: #f1f5f9;
-            min-height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
+    max-width: 600px;
 
-        .success {
-            background: #dcfce7 !important;
-            color: #166534;
-        }
+    margin: auto;
 
-        .duplicate {
-            background: #fef3c7 !important;
-            color: #92400e;
-        }
+    padding: 20px;
 
-        .error {
-            background: #fee2e2 !important;
-            color: #991b1b;
-        }
+}
 
-        .name {
-            font-size: 26px;
-            font-weight: bold;
-            margin-bottom: 6px;
-        }
 
-        .status {
-            font-size: 19px;
-            font-weight: bold;
-        }
+.header {
 
-        .small {
-            font-size: 14px;
-            margin-top: 6px;
-        }
+    text-align: center;
 
-        .camera-status {
-            text-align: center;
-            margin-bottom: 15px;
-            font-size: 14px;
-            color: #666;
-        }
+    margin-bottom: 20px;
 
-    </style>
+}
+
+
+.header h1 {
+
+    margin: 0;
+
+    font-size: 28px;
+
+}
+
+
+.header p {
+
+    margin-top: 8px;
+
+    color: #666;
+
+}
+
+
+.card {
+
+    background: white;
+
+    padding: 20px;
+
+    margin-bottom: 20px;
+
+    border-radius: 16px;
+
+    box-shadow:
+        0 4px 15px rgba(0,0,0,0.08);
+
+}
+
+
+label {
+
+    display: block;
+
+    font-weight: bold;
+
+    margin-bottom: 7px;
+
+}
+
+
+input {
+
+    width: 100%;
+
+    padding: 13px;
+
+    margin-bottom: 15px;
+
+    border: 1px solid #ccc;
+
+    border-radius: 8px;
+
+    font-size: 16px;
+
+}
+
+
+button {
+
+    width: 100%;
+
+    padding: 14px;
+
+    border: none;
+
+    border-radius: 9px;
+
+    background: #111827;
+
+    color: white;
+
+    font-size: 17px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    margin-top: 5px;
+
+}
+
+
+button:disabled {
+
+    opacity: 0.55;
+
+}
+
+
+.secondary {
+
+    background: #64748b;
+
+}
+
+
+#reader {
+
+    width: 100%;
+
+    max-width: 450px;
+
+    margin: auto;
+
+}
+
+
+#result {
+
+    margin-top: 20px;
+
+    padding: 18px;
+
+    text-align: center;
+
+    border-radius: 12px;
+
+    background: #f1f5f9;
+
+    min-height: 80px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-direction: column;
+
+}
+
+
+.success {
+
+    background: #dcfce7 !important;
+
+    color: #166534;
+
+}
+
+
+.duplicate {
+
+    background: #fef3c7 !important;
+
+    color: #92400e;
+
+}
+
+
+.error {
+
+    background: #fee2e2 !important;
+
+    color: #991b1b;
+
+}
+
+
+.name {
+
+    font-size: 26px;
+
+    font-weight: bold;
+
+    margin-bottom: 6px;
+
+}
+
+
+.status {
+
+    font-size: 19px;
+
+    font-weight: bold;
+
+}
+
+
+.small {
+
+    font-size: 14px;
+
+    margin-top: 6px;
+
+}
+
+
+.camera-status {
+
+    text-align: center;
+
+    margin-bottom: 15px;
+
+    font-size: 14px;
+
+    color: #666;
+
+}
+
+
+.manual {
+
+    margin-top: 10px;
+
+}
+
+
+.divider {
+
+    text-align: center;
+
+    color: #888;
+
+    margin: 20px 0;
+
+    font-size: 14px;
+
+}
+
+
+</style>
 
 </head>
 
@@ -177,9 +311,11 @@
 
     <div class="card">
 
+
         <label>
             Station
         </label>
+
 
         <input
             id="station"
@@ -192,6 +328,7 @@
             Meal
         </label>
 
+
         <input
             id="meal"
             type="text"
@@ -199,19 +336,13 @@
         >
 
 
-        <button
-            id="startButton"
-            onclick="requestCamera()"
-        >
-            📷 Start Camera
-        </button>
-
     </div>
 
 
-    <!-- SCANNER -->
+    <!-- QR SCANNER -->
 
     <div class="card">
+
 
         <div
             id="cameraStatus"
@@ -224,6 +355,14 @@
         <div id="reader"></div>
 
 
+        <button
+            id="startButton"
+            onclick="requestCamera()"
+        >
+            📷 Start Camera
+        </button>
+
+
         <div id="result">
 
             <div>
@@ -231,6 +370,41 @@
             </div>
 
         </div>
+
+
+    </div>
+
+
+    <!-- MANUAL FALLBACK -->
+
+    <div class="card manual">
+
+
+        <div class="divider">
+            QR not scanning?
+        </div>
+
+
+        <label>
+            Enter Team Member Name
+        </label>
+
+
+        <input
+            id="manualName"
+            type="text"
+            placeholder="Enter name"
+            autocomplete="off"
+        >
+
+
+        <button
+            class="secondary"
+            onclick="manualCheckIn()"
+        >
+            Check In Manually
+        </button>
+
 
     </div>
 
@@ -263,14 +437,14 @@ let lastScanTime = 0;
 
 
 //==================================================
-// REQUEST CAMERA PERMISSION
+// REQUEST CAMERA
 //==================================================
 
 async function requestCamera() {
 
+
     try {
 
-        // Check browser support
 
         if (
             !navigator.mediaDevices ||
@@ -278,54 +452,58 @@ async function requestCamera() {
         ) {
 
             showResult(
+
                 "error",
+
                 `
                 <div class="status">
                     Camera Not Supported
                 </div>
 
                 <div class="small">
-                    Please open this page in Chrome or Safari.
+                    Please use Chrome or Safari.
                 </div>
                 `
+
             );
 
             return;
+
         }
 
 
-        // Request camera permission
-
         const stream =
-            await navigator.mediaDevices.getUserMedia({
 
-                video: {
-                    facingMode: "environment"
-                },
+            await navigator.mediaDevices
+                .getUserMedia({
 
-                audio: false
+                    video: {
 
-            });
+                        facingMode:
+                            "environment"
 
+                    },
 
-        // Permission granted
+                    audio: false
 
-        document
-            .getElementById("cameraStatus")
-            .innerText =
-            "Camera permission granted";
+                });
 
-
-        // Stop temporary camera stream
 
         stream
             .getTracks()
             .forEach(
-                track => track.stop()
+                track =>
+                    track.stop()
             );
 
 
-        // Start QR scanner
+        document
+            .getElementById(
+                "cameraStatus"
+            )
+            .innerText =
+            "Camera permission granted";
+
 
         startScanner();
 
@@ -334,63 +512,25 @@ async function requestCamera() {
 
     catch (error) {
 
-        console.error(
-            "Camera Error:",
-            error
+
+        console.error(error);
+
+
+        showResult(
+
+            "error",
+
+            `
+            <div class="status">
+                Camera Error
+            </div>
+
+            <div class="small">
+                ${error.message}
+            </div>
+            `
+
         );
-
-
-        if (
-            error.name === "NotAllowedError"
-        ) {
-
-            showResult(
-                "error",
-                `
-                <div class="status">
-                    Camera Permission Denied
-                </div>
-
-                <div class="small">
-                    Please allow camera access
-                    in your phone settings.
-                </div>
-                `
-            );
-
-        }
-
-        else if (
-            error.name === "NotFoundError"
-        ) {
-
-            showResult(
-                "error",
-                `
-                <div class="status">
-                    No Camera Found
-                </div>
-                `
-            );
-
-        }
-
-        else {
-
-            showResult(
-                "error",
-                `
-                <div class="status">
-                    Camera Error
-                </div>
-
-                <div class="small">
-                    ${error.message}
-                </div>
-                `
-            );
-
-        }
 
     }
 
@@ -398,51 +538,51 @@ async function requestCamera() {
 
 
 //==================================================
-// START QR SCANNER
+// START SCANNER
 //==================================================
 
 function startScanner() {
 
+
     if (scanner) {
+
         return;
+
     }
 
 
     scanner =
-        new Html5Qrcode("reader");
+        new Html5Qrcode(
+            "reader"
+        );
 
 
     scanner.start(
 
-        // IMPORTANT:
-        // Keep this as a STRING.
-        // Do NOT change it to an object.
-
         {
-            facingMode: "environment"
+
+            facingMode:
+                "environment"
+
         },
 
-
-        // Scanner settings
-
         {
+
             fps: 15,
 
             qrbox: {
+
                 width: 280,
+
                 height: 280
+
             },
 
             aspectRatio: 1.0
+
         },
 
-
-        // QR SUCCESS
-
         onScanSuccess,
-
-
-        // QR ERROR
 
         onScanError
 
@@ -451,50 +591,60 @@ function startScanner() {
 
     .then(() => {
 
+
         document
-            .getElementById("cameraStatus")
+            .getElementById(
+                "cameraStatus"
+            )
             .innerText =
             "Camera active — scan QR";
 
 
+        document
+            .getElementById(
+                "startButton"
+            )
+            .innerText =
+            "Camera Running";
+
+
+        document
+            .getElementById(
+                "startButton"
+            )
+            .disabled =
+            true;
+
+
         showResult(
+
             "",
+
             `
             <div class="status">
                 Ready for Scan
             </div>
 
             <div class="small">
-                Point the camera at a QR code.
+                Point camera at QR code.
             </div>
             `
+
         );
-
-
-        document
-            .getElementById("startButton")
-            .innerText =
-            "Camera Running";
-
-
-        document
-            .getElementById("startButton")
-            .disabled =
-            true;
 
     })
 
 
     .catch(error => {
 
-        console.error(
-            "Scanner Error:",
-            error
-        );
+
+        console.error(error);
 
 
         showResult(
+
             "error",
+
             `
             <div class="status">
                 Unable to Start Scanner
@@ -504,6 +654,7 @@ function startScanner() {
                 ${error}
             </div>
             `
+
         );
 
     });
@@ -512,215 +663,121 @@ function startScanner() {
 
 
 //==================================================
-// QR SCAN SUCCESS
+// QR SUCCESS
 //==================================================
 
 function onScanSuccess(decodedText) {
+
 
     const now =
         Date.now();
 
 
-    // Prevent duplicate scanning
+    // Prevent duplicate camera detections
 
     if (
 
         processing ||
 
         (
-            decodedText === lastScanned &&
-            now - lastScanTime < 3000
+
+            decodedText ===
+            lastScanned &&
+
+            now -
+            lastScanTime <
+            3000
+
         )
 
     ) {
 
         return;
+
     }
 
-
-    // Save scan
 
     lastScanned =
         decodedText;
 
+
     lastScanTime =
         now;
+
 
     processing =
         true;
 
 
-    // Show QR detected
-
     showResult(
+
         "",
+
         `
         <div class="status">
             QR Detected
         </div>
 
         <div class="small">
-            Checking guest...
+            Checking...
         </div>
         `
+
     );
 
 
-    // Send QR to Apps Script
+    // IMPORTANT:
+    // Use google.script.run instead of fetch.
+    // This avoids an extra HTTP request through
+    // the Apps Script URL.
 
-    sendScan(decodedText);
+    google.script.run
+
+        .withSuccessHandler(
+            handleResult
+        )
+
+        .withFailureHandler(
+            handleServerError
+        )
+
+        .processScan(
+
+            decodedText,
+
+            getMeal(),
+
+            getStation()
+
+        );
 
 }
 
 
 //==================================================
-// SEND SCAN TO APPS SCRIPT
+// MANUAL CHECK-IN
 //==================================================
 
-function sendScan(guestId) {
+function manualCheckIn() {
 
 
-    const station =
+    if (processing) {
+
+        return;
+
+    }
+
+
+    const name =
         document
-            .getElementById("station")
+            .getElementById(
+                "manualName"
+            )
             .value
             .trim();
 
 
-    const meal =
-        document
-            .getElementById("meal")
-            .value
-            .trim();
-
-
-    fetch(
-
-        SCRIPT_URL,
-
-        {
-
-            method: "POST",
-
-            body: JSON.stringify({
-
-                action: "scan",
-
-                guestId: guestId,
-
-                meal: meal,
-
-                station: station
-
-            })
-
-        }
-
-    )
-
-
-    .then(
-        response => response.json()
-    )
-
-
-    .then(data => {
-
-
-        // SUCCESS
-
-        if (
-            data.status === "success"
-        ) {
-
-            showResult(
-
-                "success",
-
-                `
-                <div class="name">
-                    ${data.name}
-                </div>
-
-                <div class="status">
-                    ✓ MEAL COLLECTED
-                </div>
-
-                <div class="small">
-                    Guest ID:
-                    ${data.guestId || guestId}
-                </div>
-                `
-
-            );
-
-        }
-
-
-        // DUPLICATE
-
-        else if (
-            data.status === "duplicate"
-        ) {
-
-            showResult(
-
-                "duplicate",
-
-                `
-                <div class="name">
-                    ${data.name}
-                </div>
-
-                <div class="status">
-                    ⚠ ALREADY COLLECTED
-                </div>
-
-                <div class="small">
-                    Guest ID:
-                    ${data.guestId || guestId}
-                </div>
-                `
-
-            );
-
-        }
-
-
-        // INVALID QR
-
-        else {
-
-            showResult(
-
-                "error",
-
-                `
-                <div class="status">
-                    ✗ INVALID QR
-                </div>
-
-                <div class="small">
-                    ${
-                        data.message ||
-                        "Guest not found."
-                    }
-                </div>
-                `
-
-            );
-
-        }
-
-    })
-
-
-    .catch(error => {
-
-        console.error(
-            "Server Error:",
-            error
-        );
+    if (!name) {
 
 
         showResult(
@@ -729,28 +786,205 @@ function sendScan(guestId) {
 
             `
             <div class="status">
-                ⚠ CONNECTION ERROR
-            </div>
-
-            <div class="small">
-                Could not contact server.
+                Enter a Name
             </div>
             `
 
         );
 
-    })
+
+        return;
+
+    }
 
 
-    .finally(() => {
+    processing =
+        true;
+
+
+    showResult(
+
+        "",
+
+        `
+        <div class="status">
+            Checking...
+        </div>
+
+        <div class="small">
+            Finding ${escapeHtml(name)}
+        </div>
+        `
+
+    );
+
+
+    google.script.run
+
+        .withSuccessHandler(
+            handleResult
+        )
+
+        .withFailureHandler(
+            handleServerError
+        )
+
+        .processManualCheckIn(
+
+            name,
+
+            getMeal(),
+
+            getStation()
+
+        );
+
+}
+
+
+//==================================================
+// RESULT HANDLER
+//==================================================
+
+function handleResult(data) {
+
+
+    processing =
+        false;
+
+
+    if (!data) {
+
+        showResult(
+
+            "error",
+
+            `
+            <div class="status">
+                No Response
+            </div>
+            `
+
+        );
+
+        return;
+
+    }
+
+
+    //==============================================
+    // SUCCESS
+    //==============================================
+
+    if (
+        data.status ===
+        "success"
+    ) {
+
+
+        showResult(
+
+            "success",
+
+            `
+            <div class="name">
+                ${escapeHtml(
+                    data.name
+                )}
+            </div>
+
+            <div class="status">
+                ✓ MEAL COLLECTED
+            </div>
+
+            <div class="small">
+                ${escapeHtml(
+                    data.guestId
+                )}
+            </div>
+            `
+
+        );
+
+
+        clearManualName();
+
+
+        // Return to ready state
 
         setTimeout(
 
             () => {
 
-                processing =
-                    false;
+                if (!processing) {
 
+                    showResult(
+
+                        "",
+
+                        `
+                        <div class="status">
+                            Ready for Next Scan
+                        </div>
+                        `
+
+                    );
+
+                }
+
+            },
+
+            1200
+
+        );
+
+
+        return;
+
+    }
+
+
+    //==============================================
+    // DUPLICATE
+    //==============================================
+
+    if (
+        data.status ===
+        "duplicate"
+    ) {
+
+
+        showResult(
+
+            "duplicate",
+
+            `
+            <div class="name">
+                ${escapeHtml(
+                    data.name
+                )}
+            </div>
+
+            <div class="status">
+                ⚠ ALREADY COLLECTED
+            </div>
+
+            <div class="small">
+                ${escapeHtml(
+                    data.guestId
+                )}
+            </div>
+            `
+
+        );
+
+
+        clearManualName();
+
+
+        setTimeout(
+
+            () => {
 
                 showResult(
 
@@ -766,28 +1000,139 @@ function sendScan(guestId) {
 
             },
 
-            1000
+            1200
 
         );
 
-    });
+
+        return;
+
+    }
+
+
+    //==============================================
+    // INVALID
+    //==============================================
+
+    showResult(
+
+        "error",
+
+        `
+        <div class="status">
+            ✗ NOT FOUND
+        </div>
+
+        <div class="small">
+            ${escapeHtml(
+                data.message ||
+                "Guest not found."
+            )}
+        </div>
+        `
+
+    );
+
+
+    processing =
+        false;
 
 }
 
 
 //==================================================
-// SCANNER ERRORS
+// SERVER ERROR
+//==================================================
+
+function handleServerError(error) {
+
+
+    processing =
+        false;
+
+
+    console.error(error);
+
+
+    showResult(
+
+        "error",
+
+        `
+        <div class="status">
+            ⚠ CONNECTION ERROR
+        </div>
+
+        <div class="small">
+            Please try again.
+        </div>
+        `
+
+    );
+
+}
+
+
+//==================================================
+// GET STATION
+//==================================================
+
+function getStation() {
+
+    return document
+        .getElementById(
+            "station"
+        )
+        .value
+        .trim();
+
+}
+
+
+//==================================================
+// GET MEAL
+//==================================================
+
+function getMeal() {
+
+    return document
+        .getElementById(
+            "meal"
+        )
+        .value
+        .trim();
+
+}
+
+
+//==================================================
+// CLEAR MANUAL NAME
+//==================================================
+
+function clearManualName() {
+
+    document
+        .getElementById(
+            "manualName"
+        )
+        .value = "";
+
+}
+
+
+//==================================================
+// QR ERRORS
 //==================================================
 
 function onScanError(error) {
 
-    // Normal QR scanning errors are ignored.
+    // Ignore normal QR detection errors.
 
 }
 
 
 //==================================================
-// DISPLAY RESULT
+// SHOW RESULT
 //==================================================
 
 function showResult(
@@ -795,16 +1140,22 @@ function showResult(
     message
 ) {
 
+
     const result =
-        document.getElementById("result");
+        document.getElementById(
+            "result"
+        );
 
 
-    result.className = "";
+    result.className =
+        "";
 
 
     if (type) {
 
-        result.classList.add(type);
+        result.classList.add(
+            type
+        );
 
     }
 
@@ -814,9 +1165,45 @@ function showResult(
 
 }
 
+
+//==================================================
+// ESCAPE HTML
+//==================================================
+
+function escapeHtml(value) {
+
+    return String(value || "")
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
 </script>
 
 
 </body>
 
-</html> aa try kari jo ne
+</html>
