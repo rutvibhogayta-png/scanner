@@ -1,303 +1,822 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meal Scanner</title>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white;
-      min-height: 100vh; padding: 20px;
-      display: flex; flex-direction: column; align-items: center;
-    }
-    h1 { font-size: 20px; margin-bottom: 10px; }
 
-    /* --- login screen --- */
-    .login-screen {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      width: 100%; max-width: 360px; margin-top: 15vh;
-    }
-    .login-screen .sub { font-size: 13px; color: #94a3b8; margin-bottom: 16px; text-align: center; }
-    .login-screen input {
-      width: 100%; padding: 14px; font-size: 16px; border-radius: 8px; border: none;
-      margin-bottom: 12px; background: #1e293b; color: #22d3ee; text-align: center; letter-spacing: 2px;
-    }
-    .login-screen button {
-      width: 100%; padding: 14px; font-size: 15px; border-radius: 8px; border: none;
-      background: #22d3ee; color: #0f172a; font-weight: bold; cursor: pointer;
-    }
-    .login-screen button:disabled { opacity: 0.6; cursor: default; }
-    .login-error { color: #f87171; font-size: 13px; margin-top: 10px; min-height: 16px; text-align: center; }
+    <meta charset="UTF-8">
 
-    /* --- main app --- */
-    .app-content { display: none; width: 100%; flex-direction: column; align-items: center; }
-    select {
-      width: 100%; max-width: 500px; padding: 12px; font-size: 15px;
-      border-radius: 8px; border: none; margin-bottom: 14px; background: #1e293b; color: #22d3ee;
-    }
-    #reader { width: 100%; max-width: 500px; margin: 5px 0; border-radius: 12px; overflow: hidden; }
-    .result-box {
-      background: #1e293b; border: 2px solid #22d3ee; border-radius: 12px;
-      padding: 15px 20px; margin: 10px 0; width: 100%; max-width: 500px; text-align: center;
-    }
-    .result-box.duplicate { border-color: #fb923c; }
-    .result-box.invalid { border-color: #f87171; }
-    .result-box .name { font-size: 22px; font-weight: bold; margin: 6px 0; }
-    .result-box .role { font-size: 13px; color: #94a3b8; }
-    .meal-tag {
-      display: inline-block; font-size: 12px; padding: 3px 10px;
-      border-radius: 999px; margin-top: 8px; font-weight: bold; background: #22d3ee33; color: #22d3ee;
-    }
-    .status { font-size: 14px; margin: 8px 0 0; }
-    .status.success { color: #4ade80; }
-    .status.error { color: #f87171; }
-    .status.sending { color: #fbbf24; }
-    .status.duplicate { color: #fb923c; }
-    .progress { font-size: 12px; color: #64748b; margin-top: 4px; }
-    .history { width: 100%; max-width: 500px; margin-top: 20px; }
-    .history h3 { margin-bottom: 10px; color: #94a3b8; font-size: 13px; }
-    .history-item {
-      background: #1e293b; padding: 8px 12px; border-radius: 8px;
-      margin: 4px 0; display: flex; justify-content: space-between; font-size: 13px;
-    }
-    .logout-link {
-      font-size: 12px; color: #64748b; margin-top: 16px; text-decoration: underline; cursor: pointer;
-    }
-  </style>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Meal Check-In</title>
+
+    <!-- QR SCANNER LIBRARY -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .header p {
+            margin-top: 8px;
+            color: #666;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 9px;
+            background: #111827;
+            color: white;
+            font-size: 17px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #reader {
+            width: 100%;
+            max-width: 450px;
+            margin: auto;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 18px;
+            text-align: center;
+            border-radius: 12px;
+            background: #f1f5f9;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .success {
+            background: #dcfce7 !important;
+            color: #166534;
+        }
+
+        .duplicate {
+            background: #fef3c7 !important;
+            color: #92400e;
+        }
+
+        .error {
+            background: #fee2e2 !important;
+            color: #991b1b;
+        }
+
+        .name {
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .status {
+            font-size: 19px;
+            font-weight: bold;
+        }
+
+        .small {
+            font-size: 14px;
+            margin-top: 6px;
+        }
+
+        .camera-status {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+    </style>
+
 </head>
+
+
 <body>
 
-  <h1>Meal Scanner</h1>
 
-  <!-- LOGIN SCREEN -->
-  <div class="login-screen" id="loginScreen">
-    <div class="sub">Enter the access code to open the scanner</div>
-    <input type="password" id="authCodeInput" placeholder="Access code" autocomplete="off" inputmode="text" />
-    <button id="loginBtn">Unlock Scanner</button>
-    <div class="login-error" id="loginError"></div>
-  </div>
+<div class="container">
 
-  <!-- MAIN APP (hidden until authenticated) -->
-  <div class="app-content" id="appContent">
 
-    <select id="stationSelect">
-      <option value="">Loading meal slots...</option>
-    </select>
+    <!-- HEADER -->
 
-    <div id="reader"></div>
+    <div class="header">
 
-    <div class="result-box" id="resultBox" style="display:none">
-      <div style="font-size:12px; color:#94a3b8">Last Scanned:</div>
-      <div class="name" id="guestName">--</div>
-      <div class="role" id="guestRole"></div>
-      <div class="status" id="statusText"></div>
-      <div class="progress" id="progressText"></div>
+        <h1>Meal Check-In</h1>
+
+        <p>
+            Scan the guest QR code
+        </p>
+
     </div>
 
-    <div class="history" id="historySection" style="display:none">
-      <h3>Scan history (this session)</h3>
-      <div id="historyList"></div>
+
+    <!-- SETTINGS -->
+
+    <div class="card">
+
+        <label>
+            Station
+        </label>
+
+        <input
+            id="station"
+            type="text"
+            value="Station 1"
+        >
+
+
+        <label>
+            Meal
+        </label>
+
+        <input
+            id="meal"
+            type="text"
+            value="Meal"
+        >
+
+
+        <button
+            id="startButton"
+            onclick="requestCamera()"
+        >
+            📷 Start Camera
+        </button>
+
     </div>
 
-    <div class="logout-link" id="logoutLink">Lock scanner</div>
-  </div>
 
-  <script>
-    // IMPORTANT: paste your Apps Script Web App /exec URL here after deploying Code.gs
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwwKMthGEcVWK1XsKwcpqkK-n8cah3gqPgodPy13Gqp6JUF00oOMzve9sD6a5LmVEI/exec';
-    const STATION_NOTE = ''; // optional: label this device, e.g. 'Gate A'
+    <!-- SCANNER -->
 
-    const scanHistory = [];
-    let lastScan = '';
-    let lastScanTime = 0;
-    let scanner = null;
-    let appStarted = false; // in-memory only: reloading the page requires re-entering the code
+    <div class="card">
 
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function beep(freq) {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.frequency.value = freq;
-      gain.gain.value = 0.3;
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.15);
-    }
+        <div
+            id="cameraStatus"
+            class="camera-status"
+        >
+            Camera not started
+        </div>
 
-    //=========================
-    // LOGIN
-    //=========================
-    const loginScreen = document.getElementById('loginScreen');
-    const appContent = document.getElementById('appContent');
-    const authCodeInput = document.getElementById('authCodeInput');
-    const loginBtn = document.getElementById('loginBtn');
-    const loginError = document.getElementById('loginError');
 
-    async function attemptLogin() {
-      const code = authCodeInput.value.trim();
-      if (!code) {
-        loginError.textContent = 'Enter a code first.';
-        return;
-      }
-      loginBtn.disabled = true;
-      loginBtn.textContent = 'Checking...';
-      loginError.textContent = '';
+        <div id="reader"></div>
 
-      try {
-        const res = await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'login', code })
-        });
-        const data = await res.json();
 
-        if (data.status === 'success') {
-          loginScreen.style.display = 'none';
-          appContent.style.display = 'flex';
-          authCodeInput.value = '';
-          startApp();
-        } else {
-          loginError.textContent = data.message || 'Incorrect code.';
-        }
-      } catch (err) {
-        loginError.textContent = 'Network error: ' + err.message;
-      } finally {
-        loginBtn.disabled = false;
-        loginBtn.textContent = 'Unlock Scanner';
-      }
-    }
+        <div id="result">
 
-    loginBtn.addEventListener('click', attemptLogin);
-    authCodeInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') attemptLogin();
-    });
+            <div>
+                Press "Start Camera"
+            </div>
 
-    document.getElementById('logoutLink').addEventListener('click', () => {
-      appContent.style.display = 'none';
-      loginScreen.style.display = 'flex';
-      if (scanner) {
-        scanner.stop().catch(() => {});
-      }
-      appStarted = false;
-    });
+        </div>
 
-    //=========================
-    // MAIN APP (only runs after successful login)
-    //=========================
-    function startApp() {
-      if (appStarted) return;
-      appStarted = true;
-      loadSlots();
-      startScanner();
-    }
+    </div>
 
-    function loadSlots() {
-      const sel = document.getElementById('stationSelect');
-      fetch(APPS_SCRIPT_URL + '?action=slots')
-        .then(r => r.json())
-        .then(data => {
-          if (data.status !== 'ok') throw new Error('bad response');
-          sel.innerHTML = data.slots.map(s => '<option value="' + s.key + '">' + s.label + '</option>').join('');
-        })
-        .catch(() => {
-          sel.innerHTML = '<option value="">Could not load meal slots — check APPS_SCRIPT_URL</option>';
-        });
-    }
 
-    async function sendScan(guestId) {
-      const mealSlot = document.getElementById('stationSelect').value;
-      const el = document.getElementById('statusText');
-      const box = document.getElementById('resultBox');
-      box.className = 'result-box';
-      el.className = 'status sending';
-      el.textContent = 'Checking...';
+</div>
 
-      if (!mealSlot) {
-        el.className = 'status error';
-        el.textContent = 'Select a meal slot first.';
-        return;
-      }
 
-      try {
-        // text/plain avoids a CORS preflight; Apps Script still parses it as JSON
-        const res = await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ guestId, mealSlot, station: STATION_NOTE })
-        });
-        const data = await res.json();
+<script>
 
-        document.getElementById('guestName').textContent = data.name || guestId;
-        document.getElementById('guestRole').textContent = data.role || '';
 
-        if (data.status === 'success') {
-          beep(1200);
-          box.className = 'result-box';
-          el.className = 'status success';
-          el.textContent = 'Logged: ' + data.mealLabel;
-          document.getElementById('progressText').textContent = data.mealsCompleted + ' / ' + data.totalSlots + ' meals completed';
-        } else if (data.status === 'duplicate') {
-          beep(500);
-          box.className = 'result-box duplicate';
-          el.className = 'status duplicate';
-          el.textContent = data.message;
-          document.getElementById('progressText').textContent = data.mealsCompleted + ' / ' + data.totalSlots + ' meals completed';
-        } else if (data.status === 'invalid') {
-          beep(300);
-          box.className = 'result-box invalid';
-          el.className = 'status error';
-          el.textContent = data.message;
-          document.getElementById('progressText').textContent = '';
-        } else {
-          box.className = 'result-box invalid';
-          el.className = 'status error';
-          el.textContent = data.message || 'Unknown error';
+//==================================================
+// APPS SCRIPT URL
+//==================================================
+
+const SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbyrO6ACLcH2XctMwaKeIRoTdGYGR6dlo6ZtfPBSiTOCV8_5FbQTWANZFIAllRXV3Lg/exec";
+
+
+//==================================================
+// VARIABLES
+//==================================================
+
+let scanner = null;
+
+let processing = false;
+
+let lastScanned = "";
+
+let lastScanTime = 0;
+
+
+//==================================================
+// REQUEST CAMERA PERMISSION
+//==================================================
+
+async function requestCamera() {
+
+    try {
+
+        // Check browser support
+
+        if (
+            !navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia
+        ) {
+
+            showResult(
+                "error",
+                `
+                <div class="status">
+                    Camera Not Supported
+                </div>
+
+                <div class="small">
+                    Please open this page in Chrome or Safari.
+                </div>
+                `
+            );
+
+            return;
         }
 
-        scanHistory.unshift({ guestId, status: data.status, meal: data.mealLabel || mealSlot, time: new Date().toLocaleTimeString() });
-        updateHistory();
-      } catch (err) {
-        box.className = 'result-box invalid';
-        el.className = 'status error';
-        el.textContent = 'Network error: ' + err.message;
-      }
+
+        // Request camera permission
+
+        const stream =
+            await navigator.mediaDevices.getUserMedia({
+
+                video: {
+                    facingMode: "environment"
+                },
+
+                audio: false
+
+            });
+
+
+        // Permission granted
+
+        document
+            .getElementById("cameraStatus")
+            .innerText =
+            "Camera permission granted";
+
+
+        // Stop temporary camera stream
+
+        stream
+            .getTracks()
+            .forEach(
+                track => track.stop()
+            );
+
+
+        // Start QR scanner
+
+        startScanner();
+
+
     }
 
-    function onScanSuccess(decoded) {
-      const now = Date.now();
-      if (decoded === lastScan && now - lastScanTime < 3000) return; // debounce
-      lastScan = decoded;
-      lastScanTime = now;
+    catch (error) {
 
-      document.getElementById('resultBox').style.display = 'block';
-      document.getElementById('guestName').textContent = decoded;
-      document.getElementById('guestRole').textContent = '';
-      sendScan(decoded.trim().toUpperCase());
+        console.error(
+            "Camera Error:",
+            error
+        );
+
+
+        if (
+            error.name === "NotAllowedError"
+        ) {
+
+            showResult(
+                "error",
+                `
+                <div class="status">
+                    Camera Permission Denied
+                </div>
+
+                <div class="small">
+                    Please allow camera access
+                    in your phone settings.
+                </div>
+                `
+            );
+
+        }
+
+        else if (
+            error.name === "NotFoundError"
+        ) {
+
+            showResult(
+                "error",
+                `
+                <div class="status">
+                    No Camera Found
+                </div>
+                `
+            );
+
+        }
+
+        else {
+
+            showResult(
+                "error",
+                `
+                <div class="status">
+                    Camera Error
+                </div>
+
+                <div class="small">
+                    ${error.message}
+                </div>
+                `
+            );
+
+        }
+
     }
 
-    function updateHistory() {
-      document.getElementById('historySection').style.display = 'block';
-      document.getElementById('historyList').innerHTML = scanHistory.slice(0, 20).map(i =>
-        '<div class="history-item"><span>' + i.guestId + ' — ' + i.meal + ' (' + i.status + ')</span><span style="color:#64748b">' + i.time + '</span></div>'
-      ).join('');
+}
+
+
+//==================================================
+// START QR SCANNER
+//==================================================
+
+function startScanner() {
+
+    if (scanner) {
+        return;
     }
 
-    function startScanner() {
-      scanner = new Html5Qrcode('reader');
-      scanner.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 260, height: 260 }, aspectRatio: 1.0 },
-        onScanSuccess
-      ).catch(err => {
-        document.getElementById('resultBox').style.display = 'block';
-        document.getElementById('guestName').textContent = 'Camera Error';
-        document.getElementById('statusText').textContent = err;
-        document.getElementById('statusText').className = 'status error';
-      });
+
+    scanner =
+        new Html5Qrcode("reader");
+
+
+    scanner.start(
+
+        // IMPORTANT:
+        // Keep this as a STRING.
+        // Do NOT change it to an object.
+
+        {
+            facingMode: "environment"
+        },
+
+
+        // Scanner settings
+
+        {
+            fps: 15,
+
+            qrbox: {
+                width: 280,
+                height: 280
+            },
+
+            aspectRatio: 1.0
+        },
+
+
+        // QR SUCCESS
+
+        onScanSuccess,
+
+
+        // QR ERROR
+
+        onScanError
+
+    )
+
+
+    .then(() => {
+
+        document
+            .getElementById("cameraStatus")
+            .innerText =
+            "Camera active — scan QR";
+
+
+        showResult(
+            "",
+            `
+            <div class="status">
+                Ready for Scan
+            </div>
+
+            <div class="small">
+                Point the camera at a QR code.
+            </div>
+            `
+        );
+
+
+        document
+            .getElementById("startButton")
+            .innerText =
+            "Camera Running";
+
+
+        document
+            .getElementById("startButton")
+            .disabled =
+            true;
+
+    })
+
+
+    .catch(error => {
+
+        console.error(
+            "Scanner Error:",
+            error
+        );
+
+
+        showResult(
+            "error",
+            `
+            <div class="status">
+                Unable to Start Scanner
+            </div>
+
+            <div class="small">
+                ${error}
+            </div>
+            `
+        );
+
+    });
+
+}
+
+
+//==================================================
+// QR SCAN SUCCESS
+//==================================================
+
+function onScanSuccess(decodedText) {
+
+    const now =
+        Date.now();
+
+
+    // Prevent duplicate scanning
+
+    if (
+
+        processing ||
+
+        (
+            decodedText === lastScanned &&
+            now - lastScanTime < 3000
+        )
+
+    ) {
+
+        return;
     }
-  </script>
+
+
+    // Save scan
+
+    lastScanned =
+        decodedText;
+
+    lastScanTime =
+        now;
+
+    processing =
+        true;
+
+
+    // Show QR detected
+
+    showResult(
+        "",
+        `
+        <div class="status">
+            QR Detected
+        </div>
+
+        <div class="small">
+            Checking guest...
+        </div>
+        `
+    );
+
+
+    // Send QR to Apps Script
+
+    sendScan(decodedText);
+
+}
+
+
+//==================================================
+// SEND SCAN TO APPS SCRIPT
+//==================================================
+
+function sendScan(guestId) {
+
+
+    const station =
+        document
+            .getElementById("station")
+            .value
+            .trim();
+
+
+    const meal =
+        document
+            .getElementById("meal")
+            .value
+            .trim();
+
+
+    fetch(
+
+        SCRIPT_URL,
+
+        {
+
+            method: "POST",
+
+            body: JSON.stringify({
+
+                action: "scan",
+
+                guestId: guestId,
+
+                meal: meal,
+
+                station: station
+
+            })
+
+        }
+
+    )
+
+
+    .then(
+        response => response.json()
+    )
+
+
+    .then(data => {
+
+
+        // SUCCESS
+
+        if (
+            data.status === "success"
+        ) {
+
+            showResult(
+
+                "success",
+
+                `
+                <div class="name">
+                    ${data.name}
+                </div>
+
+                <div class="status">
+                    ✓ MEAL COLLECTED
+                </div>
+
+                <div class="small">
+                    Guest ID:
+                    ${data.guestId || guestId}
+                </div>
+                `
+
+            );
+
+        }
+
+
+        // DUPLICATE
+
+        else if (
+            data.status === "duplicate"
+        ) {
+
+            showResult(
+
+                "duplicate",
+
+                `
+                <div class="name">
+                    ${data.name}
+                </div>
+
+                <div class="status">
+                    ⚠ ALREADY COLLECTED
+                </div>
+
+                <div class="small">
+                    Guest ID:
+                    ${data.guestId || guestId}
+                </div>
+                `
+
+            );
+
+        }
+
+
+        // INVALID QR
+
+        else {
+
+            showResult(
+
+                "error",
+
+                `
+                <div class="status">
+                    ✗ INVALID QR
+                </div>
+
+                <div class="small">
+                    ${
+                        data.message ||
+                        "Guest not found."
+                    }
+                </div>
+                `
+
+            );
+
+        }
+
+    })
+
+
+    .catch(error => {
+
+        console.error(
+            "Server Error:",
+            error
+        );
+
+
+        showResult(
+
+            "error",
+
+            `
+            <div class="status">
+                ⚠ CONNECTION ERROR
+            </div>
+
+            <div class="small">
+                Could not contact server.
+            </div>
+            `
+
+        );
+
+    })
+
+
+    .finally(() => {
+
+        setTimeout(
+
+            () => {
+
+                processing =
+                    false;
+
+
+                showResult(
+
+                    "",
+
+                    `
+                    <div class="status">
+                        Ready for Next Scan
+                    </div>
+                    `
+
+                );
+
+            },
+
+            1000
+
+        );
+
+    });
+
+}
+
+
+//==================================================
+// SCANNER ERRORS
+//==================================================
+
+function onScanError(error) {
+
+    // Normal QR scanning errors are ignored.
+
+}
+
+
+//==================================================
+// DISPLAY RESULT
+//==================================================
+
+function showResult(
+    type,
+    message
+) {
+
+    const result =
+        document.getElementById("result");
+
+
+    result.className = "";
+
+
+    if (type) {
+
+        result.classList.add(type);
+
+    }
+
+
+    result.innerHTML =
+        message;
+
+}
+
+</script>
+
+
 </body>
-</html>
+
+</html> aa try kari jo ne
