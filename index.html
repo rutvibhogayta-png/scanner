@@ -173,6 +173,17 @@
     </div>
 
 
+    <!-- DATA SYNC STATUS -->
+
+    <div class="card" id="syncCard">
+
+        <div id="syncStatus" class="camera-status" style="margin:0;">
+            Loading guest list…
+        </div>
+
+    </div>
+
+
     <!-- SETTINGS -->
 
     <div class="card">
@@ -235,6 +246,32 @@
     </div>
 
 
+    <!-- MANUAL ENTRY FALLBACK -->
+
+    <div class="card">
+
+        <label>
+            Manual Entry (if scan fails)
+        </label>
+
+        <input
+            id="manualId"
+            type="text"
+            placeholder="Enter Guest ID"
+            autocomplete="off"
+            autocapitalize="characters"
+        >
+
+        <button
+            id="manualButton"
+            onclick="submitManualEntry()"
+        >
+            ✅ Check In Manually
+        </button>
+
+    </div>
+
+
 </div>
 
 
@@ -246,7 +283,7 @@
 //==================================================
 
 const SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbyplAmRX-5AMtihI8Vfoh2VPhHEz8N2JH728nz2mxWhMWjCysKXLLARbh_yM5kUImE/exec";
+"https://script.google.com/macros/s/AKfycbx_QVNlGFUT_stC913o1o_P7N_gARJ0cgbHnAbH6cfpYUF-GEMCDsS7qsMjcgDP2Q/exec";
 
 
 //==================================================
@@ -260,6 +297,95 @@ let processing = false;
 let lastScanned = "";
 
 let lastScanTime = 0;
+
+
+// Local cache of all guests, keyed by Guest ID.
+// This is what makes check-in instant: we verify
+// against this Map first, and only talk to the
+// Sheet in the background to persist the result.
+
+let guestMap = new Map();
+
+let guestsLoaded = false;
+
+
+//==================================================
+// LOAD GUEST LIST FROM SHEET (ONCE, ON PAGE LOAD)
+//==================================================
+
+async function loadGuestData() {
+
+    const statusEl =
+        document.getElementById("syncStatus");
+
+    try {
+
+        const response = await fetch(
+            SCRIPT_URL + "?action=guests"
+        );
+
+        const data = await response.json();
+
+        if (data.status !== "ok") {
+
+            throw new Error(
+                data.message || "Failed to load guests."
+            );
+
+        }
+
+        guestMap = new Map(
+            data.guests.map(
+                g => [g.id, { name: g.name, taken: g.taken }]
+            )
+        );
+
+        guestsLoaded = true;
+
+        statusEl.innerText =
+            `Loaded ${guestMap.size} guests — ready to scan`;
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Guest list load error:",
+            error
+        );
+
+        guestsLoaded = false;
+
+        statusEl.innerText =
+            "⚠ Could not load guest list. Retrying…";
+
+        // Retry after a few seconds — without this list
+        // check-in can't run offline-fast.
+
+        setTimeout(loadGuestData, 4000);
+
+    }
+
+}
+
+
+// Kick off the preload as soon as the page opens,
+// so the list is ready before the user even starts
+// the camera.
+
+loadGuestData();
+
+
+//==================================================
+// REFRESH GUEST LIST ON DEMAND
+// (e.g. if new guests were added mid-event)
+//==================================================
+
+function refreshGuestData() {
+
+    loadGuestData();
+
+}
 
 
 //==================================================
@@ -546,39 +672,200 @@ function onScanSuccess(decodedText) {
     lastScanTime =
         now;
 
-    processing =
-        true;
 
-
-    // Show QR detected
-
-    showResult(
-        "",
-        `
-        <div class="status">
-            QR Detected
-        </div>
-
-        <div class="small">
-            Checking guest...
-        </div>
-        `
-    );
-
-
-    // Send QR to Apps Script
-
-    sendScan(decodedText);
+    processGuestId(decodedText, "scan");
 
 }
 
 
 //==================================================
-// SEND SCAN TO APPS SCRIPT
+// PROCESS A GUEST ID (FROM SCAN OR MANUAL ENTRY)
+// Checks the LOCAL cache instantly, updates the UI
+// right away, then syncs to Apps Script/Sheet in
+// the background so the user never has to wait on
+// the network.
 //==================================================
 
-function sendScan(guestId) {
+function processGuestId(rawId, source) {
 
+    if (processing) {
+        return;
+    }
+
+    const guestId =
+        String(rawId || "")
+            .trim()
+            .toUpperCase();
+
+    if (!guestId) {
+        return;
+    }
+
+    processing = true;
+
+
+    // Guest list hasn't finished loading yet —
+    // we can't verify safely offline, so wait
+    // instead of risking a false "invalid".
+
+    if (!guestsLoaded) {
+
+        showResult(
+            "error",
+            `
+            <div class="status">
+                ⏳ Still Loading Guest List
+            </div>
+
+            <div class="small">
+                Please wait a moment and try again.
+            </div>
+            `
+        );
+
+        processing = false;
+
+        return;
+
+    }
+
+
+    const guest =
+        guestMap.get(guestId);
+
+
+    // NOT FOUND
+
+    if (!guest) {
+
+        showResult(
+            "error",
+            `
+            <div class="status">
+                ✗ INVALID QR
+            </div>
+
+            <div class="small">
+                Guest ID "${guestId}" not found.
+            </div>
+            `
+        );
+
+        finishProcessing();
+
+        return;
+
+    }
+
+
+    // ALREADY COLLECTED (checked locally, instantly)
+
+    if (guest.taken) {
+
+        showResult(
+            "duplicate",
+            `
+            <div class="name">
+                ${guest.name}
+            </div>
+
+            <div class="status">
+                ⚠ ALREADY COLLECTED
+            </div>
+
+            <div class="small">
+                Guest ID: ${guestId}
+            </div>
+            `
+        );
+
+        finishProcessing();
+
+        return;
+
+    }
+
+
+    // SUCCESS — mark locally right away so a
+    // second scan/entry is instantly caught as a
+    // duplicate even before the server confirms.
+
+    guest.taken = true;
+
+    guestMap.set(guestId, guest);
+
+    showResult(
+        "success",
+        `
+        <div class="name">
+            ${guest.name}
+        </div>
+
+        <div class="status">
+            ✓ MEAL COLLECTED
+        </div>
+
+        <div class="small">
+            Guest ID: ${guestId}
+            ${source === "manual" ? " (manual entry)" : ""}
+        </div>
+        `
+    );
+
+
+    // Persist to the Sheet in the background —
+    // UI has already moved on, no waiting.
+
+    syncToServer(guestId);
+
+    finishProcessing();
+
+}
+
+
+//==================================================
+// RESET FOR NEXT SCAN
+//==================================================
+
+function finishProcessing() {
+
+    setTimeout(
+
+        () => {
+
+            processing =
+                false;
+
+            showResult(
+
+                "",
+
+                `
+                <div class="status">
+                    Ready for Next Scan
+                </div>
+                `
+
+            );
+
+        },
+
+        1000
+
+    );
+
+}
+
+
+//==================================================
+// BACKGROUND SYNC TO APPS SCRIPT / SHEET
+// Fire-and-forget: the UI has already updated, this
+// just makes sure the Sheet catches up. Errors are
+// logged, not shown, so a flaky connection doesn't
+// block the check-in line.
+//==================================================
+
+function syncToServer(guestId) {
 
     const station =
         document
@@ -586,13 +873,11 @@ function sendScan(guestId) {
             .value
             .trim();
 
-
     const meal =
         document
             .getElementById("meal")
             .value
             .trim();
-
 
     fetch(
 
@@ -618,161 +903,96 @@ function sendScan(guestId) {
 
     )
 
-
-    .then(
-        response => response.json()
-    )
-
+    .then(response => response.json())
 
     .then(data => {
 
-
-        // SUCCESS
-
         if (
-            data.status === "success"
+            data.status !== "success" &&
+            data.status !== "duplicate"
         ) {
 
-            showResult(
-
-                "success",
-
-                `
-                <div class="name">
-                    ${data.name}
-                </div>
-
-                <div class="status">
-                    ✓ MEAL COLLECTED
-                </div>
-
-                <div class="small">
-                    Guest ID:
-                    ${data.guestId || guestId}
-                </div>
-                `
-
-            );
-
-        }
-
-
-        // DUPLICATE
-
-        else if (
-            data.status === "duplicate"
-        ) {
-
-            showResult(
-
-                "duplicate",
-
-                `
-                <div class="name">
-                    ${data.name}
-                </div>
-
-                <div class="status">
-                    ⚠ ALREADY COLLECTED
-                </div>
-
-                <div class="small">
-                    Guest ID:
-                    ${data.guestId || guestId}
-                </div>
-                `
-
-            );
-
-        }
-
-
-        // INVALID QR
-
-        else {
-
-            showResult(
-
-                "error",
-
-                `
-                <div class="status">
-                    ✗ INVALID QR
-                </div>
-
-                <div class="small">
-                    ${
-                        data.message ||
-                        "Guest not found."
-                    }
-                </div>
-                `
-
+            console.warn(
+                "Sync issue for",
+                guestId,
+                data
             );
 
         }
 
     })
-
 
     .catch(error => {
 
         console.error(
-            "Server Error:",
+            "Background sync failed for",
+            guestId,
             error
         );
 
-
-        showResult(
-
-            "error",
-
-            `
-            <div class="status">
-                ⚠ CONNECTION ERROR
-            </div>
-
-            <div class="small">
-                Could not contact server.
-            </div>
-            `
-
-        );
-
-    })
-
-
-    .finally(() => {
-
-        setTimeout(
-
-            () => {
-
-                processing =
-                    false;
-
-
-                showResult(
-
-                    "",
-
-                    `
-                    <div class="status">
-                        Ready for Next Scan
-                    </div>
-                    `
-
-                );
-
-            },
-
-            1000
-
-        );
+        // Guest is still marked "taken" locally,
+        // so no double check-in on this device.
+        // Consider re-running refreshGuestData()
+        // once connectivity is back.
 
     });
 
 }
+
+
+//==================================================
+// MANUAL ENTRY (FALLBACK WHEN SCAN FAILS)
+//==================================================
+
+function submitManualEntry() {
+
+    const input =
+        document.getElementById("manualId");
+
+    const guestId =
+        input.value.trim();
+
+    if (!guestId) {
+
+        showResult(
+            "error",
+            `
+            <div class="status">
+                Enter a Guest ID first
+            </div>
+            `
+        );
+
+        return;
+
+    }
+
+    processGuestId(guestId, "manual");
+
+    input.value = "";
+
+}
+
+
+// Allow pressing Enter in the manual ID field
+// instead of requiring a tap on the button.
+
+document
+    .getElementById("manualId")
+    .addEventListener(
+        "keydown",
+        function (event) {
+
+            if (event.key === "Enter") {
+
+                event.preventDefault();
+
+                submitManualEntry();
+
+            }
+
+        }
+    );
 
 
 //==================================================
