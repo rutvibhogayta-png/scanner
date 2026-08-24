@@ -1,231 +1,540 @@
-//=========================
+//==================================================
 // CONFIGURATION
-//=========================
-
-const AUTH_CODE = "MEAL2026";
+//==================================================
 
 const SHEET_GUESTS = "Guests";
 const SHEET_LOGS = "MealLogs";
 const SHEET_SLOTS = "MealSlots";
 
 
-//=========================
+//==================================================
 // GET REQUESTS
-//=========================
+//==================================================
 
 function doGet(e) {
 
-  const action = e.parameter.action;
+  const action = e && e.parameter
+    ? e.parameter.action
+    : "";
 
-  // Return Meal Slots
-  if (action == "slots") {
 
-    const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET_SLOTS);
+  //==============================================
+  // MEAL SLOTS API
+  //==============================================
 
-    const data = sheet.getRange(2,1,sheet.getLastRow()-1,2).getValues();
+  if (action === "slots") {
 
-    const slots = data.map(r=>({
-      key:r[0],
-      label:r[1]
+    const sheet = SpreadsheetApp
+      .getActiveSpreadsheet()
+      .getSheetByName(SHEET_SLOTS);
+
+    const lastRow = sheet.getLastRow();
+
+    if (lastRow < 2) {
+
+      return json({
+        status: "ok",
+        slots: []
+      });
+
+    }
+
+    const data = sheet
+      .getRange(2, 1, lastRow - 1, 2)
+      .getValues();
+
+    const slots = data.map(row => ({
+      key: row[0],
+      label: row[1]
     }));
 
     return json({
-      status:"ok",
-      slots:slots
+      status: "ok",
+      slots: slots
     });
   }
 
-  return json({
-    status:"running"
-  });
+
+  //==============================================
+  // OPEN SCANNER PAGE
+  //==============================================
+
+  return HtmlService
+    .createHtmlOutputFromFile("index")
+    .setTitle("Meal Check-In");
 
 }
 
 
-
-//=========================
+//==================================================
 // POST REQUESTS
-//=========================
+//==================================================
 
-function doPost(e){
+function doPost(e) {
 
-  const data = JSON.parse(e.postData.contents);
+  try {
 
-
-  //--------------------------------
-  // LOGIN
-  //--------------------------------
-
-  if(data.action=="login"){
-
-    if(data.code==AUTH_CODE){
-
-      return json({
-        status:"success"
-      });
-
-    }
-
-    return json({
-      status:"invalid",
-      message:"Wrong authentication code."
-    });
-
-  }
-
-
-
-  //--------------------------------
-  // MEAL SCAN
-  //--------------------------------
-
-  const guestId=data.guestId;
-  const mealSlot=data.mealSlot;
-  const station=data.station||"";
-
-  const sheet=SpreadsheetApp.getActive().getSheetByName(SHEET_GUESTS);
-
-  const values=sheet.getDataRange().getValues();
-
-  const headers=values[0];
-
-  const mealColumn=headers.indexOf(mealSlot);
-
-  if(mealColumn==-1){
-
-    return json({
-      status:"error",
-      message:"Meal slot not found."
-    });
-
-  }
-
-
-  for(let i=1;i<values.length;i++){
-
-    if(values[i][0].toString().trim().toUpperCase()==guestId){
-
-      // Already Taken
-
-      if(values[i][mealColumn]==true){
-
-        return json({
-
-          status:"duplicate",
-
-          name:values[i][1],
-
-          role:values[i][2],
-
-          mealLabel:mealSlot,
-
-          mealsCompleted:countMeals(values[i],headers),
-
-          totalSlots:headers.length-3,
-
-          message:"Meal already collected."
-
-        });
-
-      }
-
-
-      // Mark Meal
-
-      sheet.getRange(i+1,mealColumn+1).setValue(true);
-
-
-      SpreadsheetApp.getActive()
-      .getSheetByName(SHEET_LOGS)
-      .appendRow([
-
-        new Date(),
-
-        guestId,
-
-        values[i][1],
-
-        mealSlot,
-
-        station
-
-      ]);
-
+    if (!e || !e.postData) {
 
       return json({
 
-        status:"success",
+        status: "error",
 
-        name:values[i][1],
-
-        role:values[i][2],
-
-        mealLabel:mealSlot,
-
-        mealsCompleted:countMealsUpdated(values[i],headers),
-
-        totalSlots:headers.length-3
+        message: "No POST data received."
 
       });
 
     }
 
+
+    const data = JSON.parse(
+      e.postData.contents
+    );
+
+
+    //============================================
+    // SCAN
+    //============================================
+
+    if (data.action === "scan") {
+
+      return processScan(data);
+
+    }
+
+
+    return json({
+
+      status: "error",
+
+      message: "Invalid action."
+
+    });
+
+
+  } catch (error) {
+
+    return json({
+
+      status: "error",
+
+      message: error.message
+
+    });
+
   }
 
+}
+
+
+//==================================================
+// PROCESS QR SCAN
+//==================================================
+
+function processScan(data) {
+
+
+  //----------------------------------------------
+  // GET DATA FROM SCANNER
+  //----------------------------------------------
+
+  const guestId = String(
+    data.guestId || ""
+  )
+    .trim()
+    .toUpperCase();
+
+
+  const meal = String(
+    data.meal || "Meal"
+  ).trim();
+
+
+  const station = String(
+    data.station || ""
+  ).trim();
+
+
+  //----------------------------------------------
+  // VALIDATION
+  //----------------------------------------------
+
+  if (!guestId) {
+
+    return json({
+
+      status: "error",
+
+      message: "Guest ID missing."
+
+    });
+
+  }
+
+
+  //----------------------------------------------
+  // OPEN SPREADSHEET
+  //----------------------------------------------
+
+  const spreadsheet =
+    SpreadsheetApp.getActiveSpreadsheet();
+
+
+  const guestSheet =
+    spreadsheet.getSheetByName(
+      SHEET_GUESTS
+    );
+
+
+  const logSheet =
+    spreadsheet.getSheetByName(
+      SHEET_LOGS
+    );
+
+
+  if (!guestSheet) {
+
+    return json({
+
+      status: "error",
+
+      message: "Guests sheet not found."
+
+    });
+
+  }
+
+
+  if (!logSheet) {
+
+    return json({
+
+      status: "error",
+
+      message: "MealLogs sheet not found."
+
+    });
+
+  }
+
+
+  //----------------------------------------------
+  // GET GUEST DATA
+  //----------------------------------------------
+
+  const lastRow =
+    guestSheet.getLastRow();
+
+
+  if (lastRow < 2) {
+
+    return json({
+
+      status: "invalid",
+
+      message: "No guests found."
+
+    });
+
+  }
+
+
+  /*
+    Guests sheet:
+
+    Column A = Guest ID
+    Column B = Name
+    Column C = Meal
+    Column D = QR
+  */
+
+
+  const guestData =
+    guestSheet
+      .getRange(
+        2,
+        1,
+        lastRow - 1,
+        4
+      )
+      .getValues();
+
+
+  //----------------------------------------------
+  // FIND GUEST
+  //----------------------------------------------
+
+  let guestRow = -1;
+
+  let guest = null;
+
+
+  for (
+    let i = 0;
+    i < guestData.length;
+    i++
+  ) {
+
+
+    const currentId =
+      String(guestData[i][0])
+        .trim()
+        .toUpperCase();
+
+
+    if (currentId === guestId) {
+
+      guestRow = i + 2;
+
+      guest = guestData[i];
+
+      break;
+
+    }
+
+  }
+
+
+  //----------------------------------------------
+  // GUEST NOT FOUND
+  //----------------------------------------------
+
+  if (!guest) {
+
+    return json({
+
+      status: "invalid",
+
+      message: "Guest not found."
+
+    });
+
+  }
+
+
+  //----------------------------------------------
+  // GET NAME
+  //----------------------------------------------
+
+  const name = guest[1];
+
+
+  //----------------------------------------------
+  // CHECK IF MEAL ALREADY TAKEN
+  //----------------------------------------------
+
+  const alreadyTaken =
+    guest[2] === true;
+
+
+  if (alreadyTaken) {
+
+    return json({
+
+      status: "duplicate",
+
+      guestId: guestId,
+
+      name: name,
+
+      meal: meal,
+
+      message: "Meal already collected."
+
+    });
+
+  }
+
+
+  //----------------------------------------------
+  // MARK MEAL AS COLLECTED
+  //----------------------------------------------
+
+  guestSheet
+    .getRange(guestRow, 3)
+    .setValue(true);
+
+
+  //----------------------------------------------
+  // ADD LOG
+  //----------------------------------------------
+
+  logSheet.appendRow([
+
+    new Date(),
+
+    guestId,
+
+    name,
+
+    meal,
+
+    station
+
+  ]);
+
+
+  //----------------------------------------------
+  // SUCCESS RESPONSE
+  //----------------------------------------------
 
   return json({
 
-    status:"invalid",
+    status: "success",
 
-    message:"Guest not found."
+    guestId: guestId,
+
+    name: name,
+
+    meal: meal,
+
+    message: "Meal successfully collected."
 
   });
 
 }
 
 
+//==================================================
+// GENERATE LARGE QR CODES
+//==================================================
 
-//=========================
-// HELPERS
-//=========================
+function generateQRCodes() {
 
-function countMeals(row,headers){
 
-  let c=0;
+  const sheet =
+    SpreadsheetApp
+      .getActiveSpreadsheet()
+      .getSheetByName(
+        SHEET_GUESTS
+      );
 
-  for(let i=3;i<headers.length;i++){
 
-    if(row[i]==true)
-      c++;
+  if (!sheet) {
+
+    throw new Error(
+      "Guests sheet not found."
+    );
 
   }
 
-  return c;
+
+  const lastRow =
+    sheet.getLastRow();
+
+
+  if (lastRow < 2) {
+
+    return;
+
+  }
+
+
+  //----------------------------------------------
+  // GET GUEST IDS
+  //----------------------------------------------
+
+  const guestIds =
+    sheet
+      .getRange(
+        2,
+        1,
+        lastRow - 1,
+        1
+      )
+      .getValues();
+
+
+  //----------------------------------------------
+  // QR COLUMN WIDTH
+  //----------------------------------------------
+
+  sheet.setColumnWidth(
+    4,
+    220
+  );
+
+
+  //----------------------------------------------
+  // GENERATE EACH QR
+  //----------------------------------------------
+
+  for (
+    let i = 0;
+    i < guestIds.length;
+    i++
+  ) {
+
+
+    const guestId =
+      String(guestIds[i][0])
+        .trim()
+        .toUpperCase();
+
+
+    if (!guestId) {
+
+      continue;
+
+    }
+
+
+    //--------------------------------------------
+    // QUICKCHART QR
+    //--------------------------------------------
+
+    const qrUrl =
+      "https://quickchart.io/qr" +
+      "?size=800" +
+      "&margin=2" +
+      "&text=" +
+      encodeURIComponent(
+        guestId
+      );
+
+
+    //--------------------------------------------
+    // INSERT QR
+    //--------------------------------------------
+
+    sheet
+      .getRange(
+        i + 2,
+        4
+      )
+      .setFormula(
+        `=IMAGE("${qrUrl}",4,200,200)`
+      );
+
+
+    //--------------------------------------------
+    // ROW HEIGHT
+    //--------------------------------------------
+
+    sheet.setRowHeight(
+      i + 2,
+      220
+    );
+
+  }
 
 }
 
 
-function countMealsUpdated(row,headers){
+//==================================================
+// JSON RESPONSE
+//==================================================
 
-  let c=1;
-
-  for(let i=3;i<headers.length;i++){
-
-    if(row[i]==true)
-      c++;
-
-  }
-
-  return c;
-
-}
-
-
-
-function json(obj){
+function json(obj) {
 
   return ContentService
-  .createTextOutput(JSON.stringify(obj))
-  .setMimeType(ContentService.MimeType.JSON);
+
+    .createTextOutput(
+      JSON.stringify(obj)
+    )
+
+    .setMimeType(
+      ContentService.MimeType.JSON
+    );
 
 }
