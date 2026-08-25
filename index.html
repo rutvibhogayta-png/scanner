@@ -283,7 +283,7 @@
 //==================================================
 
 const SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbx_QVNlGFUT_stC913o1o_P7N_gARJ0cgbHnAbH6cfpYUF-GEMCDsS7qsMjcgDP2Q/exec";
+"https://script.google.com/macros/s/AKfycbyrO6ACLcH2XctMwaKeIRoTdGYGR6dlo6ZtfPBSiTOCV8_5FbQTWANZFIAllRXV3Lg/exec";
 
 
 //==================================================
@@ -336,7 +336,12 @@ async function loadGuestData() {
 
         guestMap = new Map(
             data.guests.map(
-                g => [g.id, { name: g.name, taken: g.taken }]
+                g => [g.id, {
+                    name: g.name,
+                    taken: g.taken,
+                    enrollmentId: g.enrollmentId || "",
+                    school: g.school || ""
+                }]
             )
         );
 
@@ -679,6 +684,41 @@ function onScanSuccess(decodedText) {
 
 
 //==================================================
+// OPTIONAL DETAILS (ENROLLMENT ID / SCHOOL)
+// Only rendered when the guest record has them —
+// these fields are not required.
+//==================================================
+
+function optionalDetailsHtml(guest) {
+
+    let html = "";
+
+    if (guest.enrollmentId) {
+
+        html += `
+        <div class="small">
+            Enrollment ID: ${guest.enrollmentId}
+        </div>
+        `;
+
+    }
+
+    if (guest.school) {
+
+        html += `
+        <div class="small">
+            School: ${guest.school}
+        </div>
+        `;
+
+    }
+
+    return html;
+
+}
+
+
+//==================================================
 // PROCESS A GUEST ID (FROM SCAN OR MANUAL ENTRY)
 // Checks the LOCAL cache instantly, updates the UI
 // right away, then syncs to Apps Script/Sheet in
@@ -776,6 +816,8 @@ function processGuestId(rawId, source) {
             <div class="small">
                 Guest ID: ${guestId}
             </div>
+
+            ${optionalDetailsHtml(guest)}
             `
         );
 
@@ -809,6 +851,8 @@ function processGuestId(rawId, source) {
             Guest ID: ${guestId}
             ${source === "manual" ? " (manual entry)" : ""}
         </div>
+
+        ${optionalDetailsHtml(guest)}
         `
     );
 
